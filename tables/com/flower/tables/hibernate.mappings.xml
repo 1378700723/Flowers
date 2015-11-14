@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<mappings>
+	<mapping class="com.flower.tables.Administrator" />
+	<mapping class="com.flower.tables.Permission" />
+	<mapping class="com.flower.tables.Customer" />
+	<mapping class="com.flower.tables.FlowerTemplate" />
+	<mapping class="com.flower.tables.GoodsTemplate" />
+	<mapping class="com.flower.tables.GoodsEntity" />
+	<mapping class="com.flower.tables.GoodsOrder" />
+	<mapping class="com.flower.tables.DeliveryAddress" />
+	<mapping class="com.flower.tables.FriendRelation" />
+	<mapping class="com.flower.tables.FriendApply" />
+	<mapping class="com.flower.tables.Alias" />
+	<mapping class="com.flower.tables.Blacklist" />
+	<mapping class="com.flower.tables.Cluster" />
+	<mapping class="com.flower.tables.ClusterMember" />
+	<mapping class="com.flower.tables.FriendCircleContent" />
+	<mapping class="com.flower.tables.AppSetting" />
+	<mapping class="com.flower.tables.Images" />
+	<mapping class="com.flower.tables.UserPoi" />
+	<mapping class="com.flower.tables.GoodsAuction" />
+	<mapping class="com.flower.tables.Activity" />
+	<mapping class="com.flower.tables.GoodsBid" />
+	<mapping class="com.flower.tables.Transactionwx" />
+	<mapping class="com.flower.tables.Teamwork" />
+</mappings>

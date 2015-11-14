@@ -1,0 +1,17 @@
+/**
+ * create by 朱施健
+ */
+package org.guyou.web.server;
+
+/**
+ * @author 朱施健
+ *
+ */
+public class ${className} extends org.guyou.web.server.AbstractHttpHandler {
+
+	protected org.guyou.web.server.AbstractHttpHelper helper = null;
+	
+	public Response excuteAction(javax.servlet.http.HttpServletRequest request,javax.servlet.http.HttpServletResponse response, java.io.PrintWriter out) throws java.lang.Exception{
+		return ((${helper})helper).${function}(request,response,out);
+	}
+}

@@ -1,0 +1,294 @@
+在servlet端还是用到了commons-fileupload.jar包
+
+代码部分来自网络..............,供参考学习：，此方式类似于from表单的形式，可以参考这里（ http://blog.csdn.net/skyer_lei/article/details/6106709 ）
+
+下面贴出代码部分：
+
+ACTIVITY.java:
+
+package com.example.httppost ;
+
+import java.io.File ;
+import java.util.HashMap ;
+import java.util.Map ;
+
+import android.os.Bundle ;
+import android.os.StrictMode ;
+import android.app.Activity ;
+import android.view.Menu ;
+import android.view.View ;
+import android.view.View.OnClickListener ;
+import android.widget.Button ;
+
+public class HttpPostMainActivity extends Activity
+  {
+
+    @ Override
+    protected void onCreate( Bundle savedInstanceState )
+      {
+        super.onCreate ( savedInstanceState ) ;
+        StrictMode
+            .setThreadPolicy ( new StrictMode.ThreadPolicy.Builder ( )
+                .detectDiskReads ( ).detectDiskWrites ( )
+                .detectNetwork ( ).penaltyLog ( ).build ( ) ) ;
+        StrictMode.setVmPolicy ( new StrictMode.VmPolicy.Builder ( )
+            .detectLeakedSqlLiteObjects ( )
+            .detectLeakedClosableObjects ( ).penaltyLog ( )
+            .penaltyDeath ( ).build ( ) ) ;
+        setContentView ( R.layout.activity_http_post_main ) ;
+        Button button = ( Button ) findViewById ( R.id.button ) ;
+        button.setOnClickListener ( new OnClickListener ( )
+          {
+
+            @ Override
+            public void onClick( View v )
+              {
+                String actionUrl = "http://192.168.1.100:8081/http/HttpPost" ;
+                Map < String , String > params = new HashMap < String , String > ( ) ;
+                params.put ( "strParamName" , "strParamValue" ) ;
+                Map < String , File > files = new HashMap < String , File > ( ) ;
+                files.put ( "tempAndroid.mp3" , new File (
+                    "/sdcard/http.mp3" ) ) ;
+                try
+                  {
+                    String str = HttpPost.post ( actionUrl ,
+                        params , files ) ;
+                    System.out.println ( "str--->>>" + str ) ;
+                  }
+                catch ( Exception e )
+                  {
+                  }
+              }
+          } ) ;
+      }
+  }
+
+HttpPost：
+
+package com.example.httppost ;
+
+import java.io.DataOutputStream ;
+import java.io.File ;
+import java.io.FileInputStream ;
+import java.io.IOException ;
+import java.io.InputStream ;
+import java.net.HttpURLConnection ;
+import java.net.URL ;
+import java.util.Map ;
+
+public class HttpPost
+  {
+    /**
+     * 通过拼接的方式构造请求内容，实现参数传输以及文件传输
+     * @param acti.nUrl
+     * @param params
+     * @param files
+     * @return
+     * @throws IOException
+     */
+    public static String post( String actionUrl ,
+        Map < String , String > params , Map < String , File > files )
+        throws IOException
+      {
+
+        String BOUNDARY = java.util.UUID.randomUUID ( ).toString ( ) ;
+        String PREFIX = "--" , LINEND = "\r\n" ;
+        String MULTIPART_FROM_DATA = "multipart/form-data" ;
+        String CHARSET = "UTF-8" ;
+
+        URL uri = new URL ( actionUrl ) ;
+        HttpURLConnection conn = ( HttpURLConnection ) uri
+            .openConnection ( ) ;
+        conn.setReadTimeout ( 5 * 1000 ) ; // 缓存的最长时间
+        conn.setDoInput ( true ) ;// 允许输入
+        conn.setDoOutput ( true ) ;// 允许输出
+        conn.setUseCaches ( false ) ; // 不允许使用缓存
+        conn.setRequestMethod ( "POST" ) ;
+        conn.setRequestProperty ( "connection" , "keep-alive" ) ;
+        conn.setRequestProperty ( "Charsert" , "UTF-8" ) ;
+        conn.setRequestProperty ( "Content-Type" , MULTIPART_FROM_DATA
+            + ";boundary=" + BOUNDARY ) ;
+
+        // 首先组拼文本类型的参数
+        StringBuilder sb = new StringBuilder ( ) ;
+        for ( Map.Entry < String , String > entry : params.entrySet ( ) )
+          {
+            sb.append ( PREFIX ) ;
+            sb.append ( BOUNDARY ) ;
+            sb.append ( LINEND ) ;
+            sb.append ( "Content-Disposition: form-data; name=\""
+                + entry.getKey ( ) + "\"" + LINEND ) ;
+            sb.append ( "Content-Type: text/plain; charset="
+                + CHARSET + LINEND ) ;
+            sb.append ( "Content-Transfer-Encoding: 8bit" + LINEND ) ;
+            sb.append ( LINEND ) ;
+            sb.append ( entry.getValue ( ) ) ;
+            sb.append ( LINEND ) ;
+          }
+
+        DataOutputStream outStream = new DataOutputStream (
+            conn.getOutputStream ( ) ) ;
+        outStream.write ( sb.toString ( ).getBytes ( ) ) ;
+        // 发送文件数据
+        if ( files != null )
+          for ( Map.Entry < String , File > file : files.entrySet ( ) )
+            {
+              StringBuilder sb1 = new StringBuilder ( ) ;
+              sb1.append ( PREFIX ) ;
+              sb1.append ( BOUNDARY ) ;
+              sb1.append ( LINEND ) ;
+              sb1.append ( "Content-Disposition: form-data; name=\"file\"; filename=\""
+                  + file.getKey ( ) + "\"" + LINEND ) ;
+              sb1.append ( "Content-Type: application/octet-stream; charset="
+                  + CHARSET + LINEND ) ;
+              sb1.append ( LINEND ) ;
+              outStream.write ( sb1.toString ( ).getBytes ( ) ) ;
+
+              InputStream is = new FileInputStream (
+                  file.getValue ( ) ) ;
+              byte [ ] buffer = new byte [ 1024 ] ;
+              int len = 0 ;
+              while ( ( len = is.read ( buffer ) ) != - 1 )
+                {
+                  outStream.write ( buffer , 0 , len ) ;
+                }
+
+              is.close ( ) ;
+              outStream.write ( LINEND.getBytes ( ) ) ;
+            }
+
+        // 请求结束标志
+        byte [ ] end_data = ( PREFIX + BOUNDARY + PREFIX + LINEND )
+            .getBytes ( ) ;
+        outStream.write ( end_data ) ;
+        outStream.flush ( ) ;
+        // 得到响应码
+        int res = conn.getResponseCode ( ) ;
+        InputStream in = conn.getInputStream ( ) ;
+        if ( res == 200 )
+          {
+            int ch ;
+            StringBuilder sb2 = new StringBuilder ( ) ;
+            while ( ( ch = in.read ( ) ) != - 1 )
+              {
+                sb2.append ( ( char ) ch ) ;
+              }
+          }
+        outStream.close ( ) ;
+        conn.disconnect ( ) ;
+        return in.toString ( ) ;
+        
+      }
+
+  }
+
+下面给出Serlvert的部分：（记得把上面的jar包放在Java\jdk1.7.0_09\jre\lib\ext下面，要不然可能编译不过哦）
+import java.io.File ;
+import java.io.IOException ;
+import java.util.ArrayList ;
+import java.util.Iterator ;
+import java.util.List ;
+
+import javax.servlet.ServletException ;
+import javax.servlet.http.HttpServlet ;
+import javax.servlet.http.HttpServletRequest ;
+import javax.servlet.http.HttpServletResponse ;
+
+import org.apache.commons.fileupload.FileItem ;
+import org.apache.commons.fileupload.FileUpload ;
+import org.apache.commons.fileupload.RequestContext ;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory ;
+import org.apache.commons.fileupload.servlet.ServletFileUpload ;
+import org.apache.commons.fileupload.servlet.ServletRequestContext ;
+
+@ SuppressWarnings ( "serial" )
+public class HttpPost extends HttpServlet
+  {
+    public void doPost( HttpServletRequest request ,
+        HttpServletResponse response ) throws ServletException ,
+        IOException
+      {
+
+        RequestContext req = new ServletRequestContext ( request ) ;
+        if ( FileUpload.isMultipartContent ( req ) )
+          {
+            DiskFileItemFactory factory = new DiskFileItemFactory ( ) ;
+            ServletFileUpload fileUpload = new ServletFileUpload (
+                factory ) ;
+            fileUpload.setFileSizeMax ( 1024 * 1024 * 1024 ) ;
+
+            List items = new ArrayList ( ) ;
+            try
+              {
+                items = fileUpload.parseRequest ( request ) ;
+              }
+            catch ( Exception e )
+              {
+
+              }
+
+            Iterator it = items.iterator ( ) ;
+            while ( it.hasNext ( ) )
+              {
+                FileItem fileItem = ( FileItem ) it.next ( ) ;
+                if ( fileItem.isFormField ( ) )
+                  {
+                    System.out.println ( fileItem
+                        .getFieldName ( )
+                        + " "
+                        + fileItem.getName ( )
+                        + " "
+                        + new String ( fileItem
+                            .getString ( )
+                            .getBytes (
+                                "ISO-8859-1" ) ,
+                            "GBK" ) ) ;
+                  }
+                else
+                  {
+                    System.out.println ( fileItem
+                        .getFieldName ( )
+                        + " "
+                        + fileItem.getName ( )
+                        + " "
+                        + fileItem.isInMemory ( )
+                        + " "
+                        + fileItem.getContentType ( )
+                        + " " + fileItem.getSize ( ) ) ;
+                    if ( fileItem.getName ( ) != null
+                        && fileItem.getSize ( ) != 0 )
+                      {
+                        File fullFile = new File (
+                            fileItem.getName ( ) ) ;
+                        File newFile = new File (
+                            "F:\\"
+                                + fullFile
+                                    .getName ( ) ) ;
+                        try
+                          {
+                            fileItem.write ( newFile ) ;
+                          }
+                        catch ( Exception E )
+                          {
+
+                          }
+                      }
+                    else
+                      {
+                        System.out
+                            .println ( "no file choosen or empty file" ) ;
+                      }
+                  }
+              }
+          }
+      }
+
+    public void init( ) throws ServletException
+      {
+        // 读取在web.xml中配置的init-param
+        // FILE_MAX_SIZE = Long.parseLong ( this
+        // .getInitParameter ( "file_max_size" ) ) ;// 上传文件大小限制
+        // FILE_SAVE_PATH = this.getInitParameter ( "file_save_path" )
+        // ;// 文件保存位置
+      }
+  }
